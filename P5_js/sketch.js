@@ -1,14 +1,13 @@
-let gVelX = 30;
-let gVelY = 3;
+let gVelX = 10;
+let gVelY = 10;
 let gXPos = 500;
 let gYPos = 500;
-let gRadius = 50;
+let gRadius = 100;
 
 
 function preload()
 {
 
-	
 }
 
 function setup() 
@@ -16,7 +15,7 @@ function setup()
 	createCanvas(windowWidth , windowHeight );
 	print("Window Width : " + windowWidth);
 	print("Window Height : " + windowHeight);
-	frameRate(120);
+	frameRate(100);
 	background(0);
 }
 
