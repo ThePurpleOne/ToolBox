@@ -113,12 +113,12 @@ void GFX_DrawFillCircle(SDL_Renderer *ren, int x_, int y_, int r_, uint32_t colo
 {
 	// Don't know how to draw circle, so i took someone's fucntion
 	// SOURCE https://gist.github.com/derofim/912cfc9161269336f722
-	static const int BPP = 4;
+	//static const int BPP = 4;
 
 	for (double dy = 1; dy <= r_; dy += 1.0)
 	{
 		double dx = floor(sqrt((2.0 * r_ * dy) - (dy * dy)));
-		int x = x_ - dx;
+		//int x = x_ - dx;
 		SDL_SetRenderDrawColor(ren, COLOR_GET_R(color), COLOR_GET_G(color), COLOR_GET_B(color), alpha);
 		SDL_RenderDrawLine(ren, x_ - dx, y_ + dy - r_, x_ + dx, y_ + dy - r_);
 		SDL_RenderDrawLine(ren, x_ - dx, y_ - dy + r_, x_ + dx, y_ - dy + r_);

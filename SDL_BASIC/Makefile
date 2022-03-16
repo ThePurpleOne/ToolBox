@@ -1,20 +1,37 @@
-#arguments $(arg)
-CCC = gcc
-OPT = -lm -lSDL2
-BUILD = build
-SRC = src
+CC       := gcc
+CFLAGS   := -Wall -Wextra -g -fsanitize=address -fsanitize=leak
 
+BIN     	 := bin
+SRC     	 := src
+INCLUDE 	 := include
+LIBRARIES    := -lm -lSDL2
+EXECUTABLE   := main
 
-all : main
+# ADD ALL THE SOURCES FOR EXECUTABLE1
+SOURCES += $(SRC)/$(EXECUTABLE).c
+SOURCES += $(SRC)/j_sdl.c
+SOURCES += $(SRC)/gfx.c
 
-pre-build:
-	mkdir -p build/
+.PHONY: all run prebuild clean # Specify these are not files but internal terms
+
+all: prebuild $(BIN)/$(EXECUTABLE)
+
+prebuild:
+	@mkdir -p $(BIN)
+
+run: clean all
+	clear
+	@echo "########## EXECUTE FIRST PROGRAM ##########"
+	./$(BIN)/$(EXECUTABLE)
 
 main : build/main.o build/gfx.o
 	$(CCC) -o main $(BUILD)/main.o $(BUILD)/gfx.o $(OPT) 
 
-build/main.o : $(SRC)/main.c
-	$(CCC) -o $(BUILD)/main.o -c $(SRC)/main.c $(OPT) 
+clean:
+	@echo "########## CLEANING ##########"
+	-rm $(BIN)/*
 
-build/gfx.o : $(SRC)/gfx.c
-	$(CCC) -o $(BUILD)/gfx.o -c $(SRC)/gfx.c $(OPT)
+# COMPILE MAIN EXECUTABLE
+$(BIN)/$(EXECUTABLE): $(SOURCES)
+	@echo "########## COMPILING FIRST EXECUTABLE ##########"
+	$(CC) $(CFLAGS) -I $(INCLUDE) $^ -o $@ $(LIBRARIES)
