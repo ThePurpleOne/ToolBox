@@ -4,7 +4,7 @@ CFLAGS := -Wall -Wextra -g -fsanitize=address -fsanitize=leak
 BIN     	 := bin
 SRC     	 := src
 INCLUDE 	 := include
-LIBRARIES    := -lm -lSDL2 -lGLEW -lGLU -lGL
+LIBRARIES    := -lm -lSDL2 -lGLEW -lGLU -lGL -lglut
 EXECUTABLE   := main
 
 SOURCES += $(SRC)/$(EXECUTABLE).c

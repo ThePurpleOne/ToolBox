@@ -3,9 +3,11 @@
 	* Author : Jonas S.
 	* Date   : 19/03/2022
 	! BASIC TEMPLATE OPENGL
+	! docs : https://docs.gl/
 */
 
-#include <GL/gl.h>
+//#include <GL/gl.h>
+#include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -22,11 +24,60 @@ int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
 						SDL_GLContext* pp_gl_ctx_);
 void	SDL_killAll(SDL_Window** pp_win_, SDL_Renderer** pp_ren);
 
+
+// !-------------------------------
+// ! ----------- SHADER -----------
+// !-------------------------------
+static int CompileShader(unsigned int type, const char* source)
+{
+	unsigned int id	 = glCreateShader(type);
+	const char*	 src = (const char*)source;
+	glShaderSource(id, 1, &src, NULL);
+	glCompileShader(id);
+
+
+	int result;
+	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+	if (result == GL_FALSE)
+	{
+		int length;
+		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+		char* message = (char*)alloca(length * sizeof(char));
+		glGetShaderInfoLog(id, length, &length, message);
+		printf("Failed to compile %s shader!\n",
+			   (type == GL_VERTEX_SHADER ? "vertex" : "fragment"));
+		printf("%s\n", message);
+		glDeleteShader(id);
+		return 0;
+	}
+
+
+	return id;
+}
+
+static unsigned int CreateShader(const char* vertex_shader,
+								 const char* fragement_shader)
+{
+	unsigned int program = glCreateProgram();
+	unsigned int vs		 = CompileShader(GL_VERTEX_SHADER, vertex_shader);
+	unsigned int fs		 = CompileShader(GL_FRAGMENT_SHADER, fragement_shader);
+
+	glAttachShader(program, vs);
+	glAttachShader(program, fs);
+	glLinkProgram(program);
+	glValidateProgram(program);
+
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+	return program;
+}
+
+
 int main()
 {
 	SDL_Window*	  window   = NULL;
 	SDL_Renderer* renderer = NULL;
-	SDL_GLContext gl_ctx_  = NULL;
+	SDL_GLContext gl_ctx   = NULL;
 
 	SDL_Event event;
 
@@ -35,10 +86,60 @@ int main()
 	uint32_t first_ticks, ms_loop;
 	float	 fps = 0;
 
-	if (SDL_GL_SpawnAll(&window, &renderer, &gl_ctx_) == 0)
+	if (SDL_GL_SpawnAll(&window, &renderer, &gl_ctx) == 0)
 	{
 		printf("SDL STUFF SUCCESSFULLY SPAWNED!\n");
 	}
+
+
+	// !-------------------------------
+	// ! ----- OPENGL WEIRD THINGS ----
+	// !-------------------------------
+	// If using GLEW version 1.13 or earlier
+	glewExperimental = true;
+	GLenum err		 = glewInit();
+	if (err != GLEW_OK)
+	{
+		// Problem: glewInit failed, something is seriously wrong.
+		printf("glewInit failed: %s", glewGetErrorString(err));
+		exit(1);
+	}
+
+	// !-------------------------------
+	// ! ---------- TRIANGLE ----------
+	// !-------------------------------
+
+	// SET DATA IN THE VIDEO MEMORY BEFORE TO BE DRAWN
+	float positions[6] = { -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+
+	unsigned int tr_buff;
+	glGenBuffers(1, &tr_buff);
+	glBindBuffer(GL_ARRAY_BUFFER, tr_buff);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, positions, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+	// glBindBuffer(GL_ARRAY_BUFFER, 0);
+	printf("TRIANGLE SUCCESFULLY CREATED IN VIDEO MEMORY\n");
+
+	// CREATE AN ACTUAL SHADER
+	char* vertex_shader = "#version 330 core\n"
+						  "in vec4 position;\n"
+						  "void main()\n"
+						  "{\n"
+						  "	gl_Position = position;\n"
+						  "}\n";
+
+	char* fragment_shader = "#version 330 core\n"
+							"out vec4 color;\n"
+							"void main()\n"
+							"{\n"
+							"	color = vec4(1.0, 1.0, 1.0, 0.5);\n"
+							"}\n";
+
+	unsigned int shader_program = CreateShader(vertex_shader, fragment_shader);
+	glUseProgram(shader_program);
+
 
 	while (running_loop)
 	{
@@ -68,6 +169,9 @@ int main()
 		// !-------------------------------
 		glClearColor(1.0f, 0.4f, 0.2f, 0.5f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
 		SDL_GL_SwapWindow(window);
 
 		// !-------------------------------
@@ -100,7 +204,7 @@ int main()
  */
 int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
 						SDL_Renderer** pp_ren,
-						SDL_GLContext* pp_gl_ctx_)
+						SDL_GLContext* p_gl_ctx_)
 {
 	// ! INIT SDL
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -122,15 +226,15 @@ int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
 	}
 
 	// ! SET OPENGL VERSION TO 3.3
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
 
 	// ! SET ATTRIBUTES FOR OPENGL BEFORE CREATING THE CONTEXT
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
 						SDL_GL_CONTEXT_PROFILE_CORE);
 
 	// ! CREATE THE CONTEXT
-	pp_gl_ctx_ = SDL_GL_CreateContext(*pp_win_);
+	p_gl_ctx_ = SDL_GL_CreateContext(*pp_win_);
 
 	return 0;
 }
