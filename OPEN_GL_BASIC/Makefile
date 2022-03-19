@@ -14,7 +14,6 @@ SOURCES += $(SRC)/$(EXECUTABLE).c
 all: prebuild $(BIN)/$(EXECUTABLE)
 
 run: clean all
-	clear
 	@echo "########## EXECUTE FIRST PROGRAM ##########"
 	./$(BIN)/$(EXECUTABLE)
 

@@ -7,10 +7,12 @@
 */
 
 //#include <GL/gl.h>
+#define GLEW_STATIC
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <stdio.h>
+
 
 #define WINDOW_NAME	  "Testing OPENGL"
 #define WINDOW_WIDTH  500
@@ -19,15 +21,30 @@
 #define FPS		   200
 #define FRAME_TIME (1000 / FPS)
 
-int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
-						SDL_Renderer** pp_ren,
-						SDL_GLContext* pp_gl_ctx_);
-void	SDL_killAll(SDL_Window** pp_win_, SDL_Renderer** pp_ren);
+int32_t SDL_GL_SpawnAll(SDL_Window** pp_win_);
+void	SDL_killAll(SDL_Window** pp_win_);
 
 
 // !-------------------------------
 // ! ----------- SHADER -----------
 // !-------------------------------
+// CREATE AN ACTUAL SHADER
+static const GLchar* vertex_shader
+  = "#version 330\n"
+	"attribute vec2 coord2d;\n"
+	"void main() {\n"
+	"    gl_Position = vec4(coord2d, 0.0, 1.0);\n"
+	"}\n";
+
+static const GLchar* fragment_shader
+  = "#version 330\n"
+	"void main() {\n"
+	"    gl_FragColor = vec4(1.0, 0.0, 0.0, 0.1);\n"
+	"}\n";
+
+static GLfloat positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f };
+
+
 static int CompileShader(unsigned int type, const char* source)
 {
 	unsigned int id	 = glCreateShader(type);
@@ -56,11 +73,11 @@ static int CompileShader(unsigned int type, const char* source)
 }
 
 static unsigned int CreateShader(const char* vertex_shader,
-								 const char* fragement_shader)
+								 const char* fragment_shader)
 {
 	unsigned int program = glCreateProgram();
 	unsigned int vs		 = CompileShader(GL_VERTEX_SHADER, vertex_shader);
-	unsigned int fs		 = CompileShader(GL_FRAGMENT_SHADER, fragement_shader);
+	unsigned int fs		 = CompileShader(GL_FRAGMENT_SHADER, fragment_shader);
 
 	glAttachShader(program, vs);
 	glAttachShader(program, fs);
@@ -72,32 +89,24 @@ static unsigned int CreateShader(const char* vertex_shader,
 	return program;
 }
 
-
 int main()
 {
-	SDL_Window*	  window   = NULL;
-	SDL_Renderer* renderer = NULL;
-	SDL_GLContext gl_ctx   = NULL;
-
-	SDL_Event event;
+	SDL_Window* window = NULL;
+	SDL_Event	event;
 
 	// ! LOOP AND EVENTS VARIABLES
 	bool	 running_loop = true;
 	uint32_t first_ticks, ms_loop;
 	float	 fps = 0;
 
-	if (SDL_GL_SpawnAll(&window, &renderer, &gl_ctx) == 0)
+	if (SDL_GL_SpawnAll(&window) == 0)
 	{
 		printf("SDL STUFF SUCCESSFULLY SPAWNED!\n");
 	}
 
+	SDL_GLContext gl_ctx = SDL_GL_CreateContext(window);
 
-	// !-------------------------------
-	// ! ----- OPENGL WEIRD THINGS ----
-	// !-------------------------------
-	// If using GLEW version 1.13 or earlier
-	glewExperimental = true;
-	GLenum err		 = glewInit();
+	GLenum err = glewInit();
 	if (err != GLEW_OK)
 	{
 		// Problem: glewInit failed, something is seriously wrong.
@@ -105,12 +114,7 @@ int main()
 		exit(1);
 	}
 
-	// !-------------------------------
-	// ! ---------- TRIANGLE ----------
-	// !-------------------------------
-
-	// SET DATA IN THE VIDEO MEMORY BEFORE TO BE DRAWN
-	float positions[6] = { -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+	unsigned int shader_program = CreateShader(vertex_shader, fragment_shader);
 
 	unsigned int tr_buff;
 	glGenBuffers(1, &tr_buff);
@@ -118,28 +122,13 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, positions, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glEnableVertexAttribArray(0);
-	// glBindBuffer(GL_ARRAY_BUFFER, 0);
-	printf("TRIANGLE SUCCESFULLY CREATED IN VIDEO MEMORY\n");
 
-	// CREATE AN ACTUAL SHADER
-	char* vertex_shader = "#version 330 core\n"
-						  "in vec4 position;\n"
-						  "void main()\n"
-						  "{\n"
-						  "	gl_Position = position;\n"
-						  "}\n";
-
-	char* fragment_shader = "#version 330 core\n"
-							"out vec4 color;\n"
-							"void main()\n"
-							"{\n"
-							"	color = vec4(1.0, 1.0, 1.0, 0.5);\n"
-							"}\n";
-
-	unsigned int shader_program = CreateShader(vertex_shader, fragment_shader);
 	glUseProgram(shader_program);
 
+
+	glClearColor(0.1f, 0.1f, 0.1f, 0.8f);
 
 	while (running_loop)
 	{
@@ -167,11 +156,9 @@ int main()
 		// !-------------------------------
 		// ! ------------ DRAW ------------
 		// !-------------------------------
-		glClearColor(1.0f, 0.4f, 0.2f, 0.5f);
+		// glClearColor(1.0f, 0.4f, 0.2f, 0.5f);
 		glClear(GL_COLOR_BUFFER_BIT);
-
 		glDrawArrays(GL_TRIANGLES, 0, 3);
-
 		SDL_GL_SwapWindow(window);
 
 		// !-------------------------------
@@ -190,7 +177,9 @@ int main()
 		printf("%.0f FPS\r", fps);
 	}
 
-	SDL_killAll(&window, &renderer);
+	SDL_GL_DeleteContext(gl_ctx);
+	SDL_killAll(&window);
+
 
 	return 0;
 }
@@ -202,15 +191,13 @@ int main()
  * @param pp_ren Pointer to Renderer Pointer
  * @return int32_t
  */
-int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
-						SDL_Renderer** pp_ren,
-						SDL_GLContext* p_gl_ctx_)
+int32_t SDL_GL_SpawnAll(SDL_Window** pp_win_)
 {
 	// ! INIT SDL
-	if (SDL_Init(SDL_INIT_VIDEO) != 0)
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) != 0)
 	{
 		printf("Unable to Initialize SDL: %s", SDL_GetError());
-		SDL_killAll(pp_win_, pp_ren);
+		SDL_killAll(pp_win_);
 		return EXIT_FAILURE;
 	}
 
@@ -221,20 +208,9 @@ int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
 	if (*pp_win_ == NULL)
 	{
 		printf("Unable to Initialize the Window: %s", SDL_GetError());
-		SDL_killAll(pp_win_, pp_ren);
+		SDL_killAll(pp_win_);
 		return EXIT_FAILURE;
 	}
-
-	// ! SET OPENGL VERSION TO 3.3
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-
-	// ! SET ATTRIBUTES FOR OPENGL BEFORE CREATING THE CONTEXT
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-						SDL_GL_CONTEXT_PROFILE_CORE);
-
-	// ! CREATE THE CONTEXT
-	p_gl_ctx_ = SDL_GL_CreateContext(*pp_win_);
 
 	return 0;
 }
@@ -245,15 +221,8 @@ int32_t SDL_GL_SpawnAll(SDL_Window**   pp_win_,
  * @param pp_win_ Pointer to Window Pointer
  * @param pp_ren Pointer to Renderer Pointer
  */
-void SDL_killAll(SDL_Window** pp_win_, SDL_Renderer** pp_ren)
+void SDL_killAll(SDL_Window** pp_win_)
 {
-	// Free the SDL renderer
-	if (pp_ren)
-	{
-		SDL_DestroyRenderer(*pp_ren);
-		*pp_ren = NULL;
-	}
-
 	// Free the SDL window
 	if (pp_win_)
 	{
