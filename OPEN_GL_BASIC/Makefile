@@ -6,16 +6,22 @@ SRC     	 := src
 INCLUDE 	 := include
 LIBRARIES    := -lm -lSDL2 -lGLEW -lGLU -lGL -lglut
 EXECUTABLE   := main
+TEST_EXE   := test
 
 SOURCES += $(SRC)/$(EXECUTABLE).c
 
-.PHONY: all run clean prebuild
+TEST_SOURCES += $(SRC)/$(TEST_EXE).c
 
-all: prebuild $(BIN)/$(EXECUTABLE)
+.PHONY: all run test clean prebuild
+
+all: prebuild $(BIN)/$(EXECUTABLE) $(BIN)/$(TEST_EXE)
 
 run: clean all
 	@echo "########## EXECUTE FIRST PROGRAM ##########"
 	./$(BIN)/$(EXECUTABLE)
+
+test: $(BIN)/$(TEST_EXE)
+	./$(BIN)/$(TEST_EXE)
 
 prebuild:
 	@mkdir -p $(BIN)
@@ -27,5 +33,10 @@ clean:
 # COMPILE FIRST EXECUTABLE
 $(BIN)/$(EXECUTABLE): $(SOURCES)
 	@echo "########## COMPILING FIRST EXECUTABLE ##########"
+	$(CC) $(CFLAGS) -I $(INCLUDE) $^ -o $@ $(LIBRARIES)
+
+# COMPILE TEST EXECUTABLE
+$(BIN)/$(TEST_EXE): $(TEST_SOURCES)
+	@echo "########## COMPILING TEST EXECUTABLE ##########"
 	$(CC) $(CFLAGS) -I $(INCLUDE) $^ -o $@ $(LIBRARIES)
 

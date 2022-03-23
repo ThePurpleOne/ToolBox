@@ -28,22 +28,82 @@ void	SDL_killAll(SDL_Window** pp_win_);
 // !-------------------------------
 // ! ----------- SHADER -----------
 // !-------------------------------
-// CREATE AN ACTUAL SHADER
-static const GLchar* vertex_shader
-  = "#version 330\n"
-	"attribute vec2 coord2d;\n"
-	"void main() {\n"
-	"    gl_Position = vec4(coord2d, 0.0, 1.0);\n"
-	"}\n";
-
-static const GLchar* fragment_shader
-  = "#version 330\n"
-	"void main() {\n"
-	"    gl_FragColor = vec4(1.0, 0.0, 0.0, 0.1);\n"
-	"}\n";
 
 static GLfloat positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f };
 
+static void parse_shader(char* file_path)
+{
+	FILE* fp = fopen(file_path, "r");
+	if (fp == NULL)
+	{
+		printf("Failed to open file %s\n", file_path);
+		return;
+	}
+
+	// ! GET TO THE BEGINNING OF SHADER VERTEX
+	
+	while (1) // ? LOOK FOR SHADER VERTEX
+	{
+		if (feof(fp))
+			return;
+
+		char* line = NULL;
+		getline(&line, NULL, fp);
+
+		if (strstr(line, "#shader vertex") != NULL)
+			break;
+	} // QUIT WHEN FOUND "shader vertex"
+
+	char buff_shader_vertex[1000];
+	while (1) // ? READ THE SHADER UNTIL END SHADER VERTEX
+	{
+		if (feof(fp))
+			return;
+
+		char* line = NULL;
+		getline(&line, NULL, fp);
+
+		if (strstr(line, "#end shader vertex") != NULL)
+			break;
+
+		// Copy the shader string line by line into the buffer
+		strcat(line, buff_shader_vertex);
+	} // QUIT WHEN FOUND "end shader vertex"
+
+	// ! GET TO THE BEGINNING OF FRAGMENT SHADER
+	while (1) // ? LOOK FOR FRAGMENT SHADER
+	{
+		if (feof(fp))
+			return;
+
+		char* line = NULL;
+		getline(&line, NULL, fp);
+
+		if (strstr(line, "#fragment vertex") != NULL)
+			break;
+	} // QUIT WHEN FOUND "shader vertex"
+
+	char buff_shader_fragment[1000];
+	while (1) // ? READ THE SHADER UNTIL END SHADER FRAGMENT
+	{
+		if (feof(fp))
+			return;
+
+		char* line = NULL;
+		getline(&line, NULL, fp);
+
+		if (strstr(line, "#end shader vertex") != NULL)
+			break;
+
+		// Copy the shader string line by line into the buffer
+		strcat(line, buff_shader_fragment);
+	} // QUIT WHEN FOUND "end shader fragment"
+
+	fclose(fp);
+
+	printf("%s\n", buff_shader_vertex);
+	printf("%s\n", buff_shader_fragment);
+}
 
 static int CompileShader(unsigned int type, const char* source)
 {
@@ -67,8 +127,6 @@ static int CompileShader(unsigned int type, const char* source)
 		glDeleteShader(id);
 		return 0;
 	}
-
-
 	return id;
 }
 
