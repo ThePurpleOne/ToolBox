@@ -29,81 +29,63 @@ void	SDL_killAll(SDL_Window** pp_win_);
 // ! ----------- SHADER -----------
 // !-------------------------------
 
-static GLfloat positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f };
+static GLfloat positions[] = { -0.8f, 0.8f, 0.8f, 0.8f,	 -0.8f, -0.8f,
+							   0.8f,  0.8f, 0.8f, -0.8f, -0.8f, -0.8f };
 
-static void parse_shader(char* file_path)
+/**
+ * @brief Read the shaders from files and return an array of strings
+ * 		  containing the shaders
+ *
+ * @param fpath_vertex
+ * @param fpath_fragment
+ * @return char** array[0] = vertex shader,
+ * 				  array[1] = fragment shader
+ */
+char** read_shaders(char* fpath_vertex, char* fpath_fragment)
 {
-	FILE* fp = fopen(file_path, "r");
-	if (fp == NULL)
+	char line[100] = { 0 };
+
+	// ! READING VERTEX SHADER
+	char  buff_vertex[1000] = { 0 };
+	FILE* fp_vertex			= fopen(fpath_vertex, "r");
+	if (fp_vertex == NULL)
 	{
-		printf("Failed to open file %s\n", file_path);
-		return;
+		fprintf(stderr, "Failed to open file %s\n", fpath_vertex);
+		return NULL;
+	}
+	while (!feof(fp_vertex))
+	{
+		fgets(line, 100, fp_vertex);
+		strcat(buff_vertex, line);
 	}
 
-	// ! GET TO THE BEGINNING OF SHADER VERTEX
-	
-	while (1) // ? LOOK FOR SHADER VERTEX
+	// ! READING FRAGMENT SHADER
+	char  buff_fragment[1000] = { 0 };
+	FILE* fp_fragment		  = fopen(fpath_fragment, "r");
+	if (fp_fragment == NULL)
 	{
-		if (feof(fp))
-			return;
-
-		char* line = NULL;
-		getline(&line, NULL, fp);
-
-		if (strstr(line, "#shader vertex") != NULL)
-			break;
-	} // QUIT WHEN FOUND "shader vertex"
-
-	char buff_shader_vertex[1000];
-	while (1) // ? READ THE SHADER UNTIL END SHADER VERTEX
+		fprintf(stderr, "Failed to open file %s\n", fpath_fragment);
+		return NULL;
+	}
+	while (!feof(fp_fragment))
 	{
-		if (feof(fp))
-			return;
+		fgets(line, 100, fp_fragment);
+		strcat(buff_fragment, line);
+	}
 
-		char* line = NULL;
-		getline(&line, NULL, fp);
+	fclose(fp_vertex);
+	fclose(fp_fragment);
 
-		if (strstr(line, "#end shader vertex") != NULL)
-			break;
+	char** output_array	   = malloc(sizeof(char*) * 2);
+	char*  output_vertex   = strdup(buff_vertex);
+	char*  output_fragment = strdup(buff_fragment);
 
-		// Copy the shader string line by line into the buffer
-		strcat(line, buff_shader_vertex);
-	} // QUIT WHEN FOUND "end shader vertex"
+	output_array[0] = output_vertex;
+	output_array[1] = output_fragment;
 
-	// ! GET TO THE BEGINNING OF FRAGMENT SHADER
-	while (1) // ? LOOK FOR FRAGMENT SHADER
-	{
-		if (feof(fp))
-			return;
-
-		char* line = NULL;
-		getline(&line, NULL, fp);
-
-		if (strstr(line, "#fragment vertex") != NULL)
-			break;
-	} // QUIT WHEN FOUND "shader vertex"
-
-	char buff_shader_fragment[1000];
-	while (1) // ? READ THE SHADER UNTIL END SHADER FRAGMENT
-	{
-		if (feof(fp))
-			return;
-
-		char* line = NULL;
-		getline(&line, NULL, fp);
-
-		if (strstr(line, "#end shader vertex") != NULL)
-			break;
-
-		// Copy the shader string line by line into the buffer
-		strcat(line, buff_shader_fragment);
-	} // QUIT WHEN FOUND "end shader fragment"
-
-	fclose(fp);
-
-	printf("%s\n", buff_shader_vertex);
-	printf("%s\n", buff_shader_fragment);
+	return output_array;
 }
+
 
 static int CompileShader(unsigned int type, const char* source)
 {
@@ -147,6 +129,7 @@ static unsigned int CreateShader(const char* vertex_shader,
 	return program;
 }
 
+
 int main()
 {
 	SDL_Window* window = NULL;
@@ -172,12 +155,17 @@ int main()
 		exit(1);
 	}
 
-	unsigned int shader_program = CreateShader(vertex_shader, fragment_shader);
+	// ! SHADERS MANAGEMENT
+	char** shaders = read_shaders("src/shaders/base_vertex.glsl",
+								  "src/shaders/base_fragment.glsl");
+
+	unsigned int shader_program = CreateShader(shaders[0], shaders[1]);
 
 	unsigned int tr_buff;
 	glGenBuffers(1, &tr_buff);
 	glBindBuffer(GL_ARRAY_BUFFER, tr_buff);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, positions, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, positions,
+				 GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -216,7 +204,7 @@ int main()
 		// !-------------------------------
 		// glClearColor(1.0f, 0.4f, 0.2f, 0.5f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 		SDL_GL_SwapWindow(window);
 
 		// !-------------------------------
@@ -234,6 +222,12 @@ int main()
 		fps		= 1000.0f / ms_loop;
 		printf("%.0f FPS\r", fps);
 	}
+
+	// FREE AND DELETE SHADERS
+	glDeleteProgram(shader_program);
+	free(shaders[0]);
+	free(shaders[1]);
+	free(shaders);
 
 	SDL_GL_DeleteContext(gl_ctx);
 	SDL_killAll(&window);
