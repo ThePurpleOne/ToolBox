@@ -13,6 +13,7 @@
 
 #define GLEW_STATIC
 #include <GL/glew.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -51,8 +52,18 @@ int main()
 
 	unsigned int shader_program = j_shader_create(shaders[0], shaders[1]);
 
+	// !-------------------------------
+	// ! -------- SHAPE TO DRAW -------
+	// !-------------------------------
 	float positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f, 0.8f, -0.8f };
 	unsigned int indices[] = { 0, 1, 2, 1, 3, 2 };
+
+	// !-------------------------------
+	// ! ----- VERTEX ARRAY OBJECT ----
+	// !-------------------------------
+	unsigned int vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
 	// !-------------------------------
 	// ! ---- VERTEX BUFFER OBJECT ----
@@ -82,6 +93,7 @@ int main()
 	glClearColor(0.1f, 0.1f, 0.1f, 0.8f);
 
 
+	float color_counter = 0;
 	while (running_loop)
 	{
 		first_ticks = SDL_GetTicks();
@@ -105,13 +117,20 @@ int main()
 		// !-------------------------------
 		// ! ----------- UPDATE -----------
 		// !-------------------------------
+		glUseProgram(shader_program);
+		// update the uniform color
+		color_counter += 0.01f;
+		float timeValue	 = color_counter;
+		float greenValue = sin(timeValue) / 2.0f + 0.5f;
+		int	  vertexColorLocation
+		  = glGetUniformLocation(shader_program, "test_color");
+		glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+
 
 		// !-------------------------------
 		// ! ------------ DRAW ------------
 		// !-------------------------------
-		// glClearColor(1.0f, 0.4f, 0.2f, 0.5f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		// glDrawArrays(GL_TRIANGLES, 0, 6);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		SDL_GL_SwapWindow(window);
 
