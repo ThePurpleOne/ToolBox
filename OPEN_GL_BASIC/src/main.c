@@ -24,14 +24,6 @@
 int32_t SDL_GL_SpawnAll(SDL_Window** pp_win_);
 void	SDL_killAll(SDL_Window** pp_win_);
 
-
-// !-------------------------------
-// ! ----------- SHADER -----------
-// !-------------------------------
-
-static GLfloat positions[] = { -0.8f, 0.8f, 0.8f, 0.8f,	 -0.8f, -0.8f,
-							   0.8f,  0.8f, 0.8f, -0.8f, -0.8f, -0.8f };
-
 /**
  * @brief Read the shaders from files and return an array of strings
  * 		  containing the shaders
@@ -161,20 +153,30 @@ int main()
 
 	unsigned int shader_program = CreateShader(shaders[0], shaders[1]);
 
-	unsigned int tr_buff;
-	glGenBuffers(1, &tr_buff);
-	glBindBuffer(GL_ARRAY_BUFFER, tr_buff);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, positions,
+	float positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f, 0.8f, -0.8f };
+	unsigned int indices[] = { 0, 1, 2, 1, 3, 2 };
+
+	printf("JUST BEFORE CREATING VBO\n");
+	unsigned int vbo; // VERTEX BUFFER OBJECT
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 2, positions,
 				 GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 
+	unsigned int ibo; // INDEX BUFFER OBJECT
+	glGenBuffers(1, &ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices,
+				 GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(shader_program);
 
-
 	glClearColor(0.1f, 0.1f, 0.1f, 0.8f);
+
 
 	while (running_loop)
 	{
@@ -204,7 +206,8 @@ int main()
 		// !-------------------------------
 		// glClearColor(1.0f, 0.4f, 0.2f, 0.5f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		// glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		SDL_GL_SwapWindow(window);
 
 		// !-------------------------------
