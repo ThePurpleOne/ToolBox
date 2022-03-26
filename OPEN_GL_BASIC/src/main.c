@@ -7,108 +7,14 @@
 */
 
 //#include <GL/gl.h>
+#include "../include/j_shaders.h"
 #include "../include/sdl_abstract.h"
+
 
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-/**
- * @brief Read the shaders from files and return an array of strings
- * 		  containing the shaders
- *
- * @param fpath_vertex
- * @param fpath_fragment
- * @return char** array[0] = vertex shader,
- * 				  array[1] = fragment shader
- */
-char** read_shaders(char* fpath_vertex, char* fpath_fragment)
-{
-	char line[100] = { 0 };
-
-	// ! READING VERTEX SHADER
-	char  buff_vertex[1000] = { 0 };
-	FILE* fp_vertex			= fopen(fpath_vertex, "r");
-	if (fp_vertex == NULL)
-	{
-		fprintf(stderr, "Failed to open file %s\n", fpath_vertex);
-		return NULL;
-	}
-	while (!feof(fp_vertex))
-	{
-		fgets(line, 100, fp_vertex);
-		strcat(buff_vertex, line);
-	}
-
-	// ! READING FRAGMENT SHADER
-	char  buff_fragment[1000] = { 0 };
-	FILE* fp_fragment		  = fopen(fpath_fragment, "r");
-	if (fp_fragment == NULL)
-	{
-		fprintf(stderr, "Failed to open file %s\n", fpath_fragment);
-		return NULL;
-	}
-	while (!feof(fp_fragment))
-	{
-		fgets(line, 100, fp_fragment);
-		strcat(buff_fragment, line);
-	}
-
-	fclose(fp_vertex);
-	fclose(fp_fragment);
-
-	char** output_array	   = malloc(sizeof(char*) * 2);
-	char*  output_vertex   = strdup(buff_vertex);
-	char*  output_fragment = strdup(buff_fragment);
-
-	output_array[0] = output_vertex;
-	output_array[1] = output_fragment;
-
-	return output_array;
-}
-
-static int CompileShader(unsigned int type, const char* source)
-{
-	unsigned int id	 = glCreateShader(type);
-	const char*	 src = (const char*)source;
-	glShaderSource(id, 1, &src, NULL);
-	glCompileShader(id);
-
-
-	int result;
-	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-	if (result == GL_FALSE)
-	{
-		int length;
-		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-		char* message = (char*)alloca(length * sizeof(char));
-		glGetShaderInfoLog(id, length, &length, message);
-		printf("Failed to compile %s shader!\n",
-			   (type == GL_VERTEX_SHADER ? "vertex" : "fragment"));
-		printf("%s\n", message);
-		glDeleteShader(id);
-		return 0;
-	}
-	return id;
-}
-
-static unsigned int CreateShader(const char* vertex_shader,
-								 const char* fragment_shader)
-{
-	unsigned int program = glCreateProgram();
-	unsigned int vs		 = CompileShader(GL_VERTEX_SHADER, vertex_shader);
-	unsigned int fs		 = CompileShader(GL_FRAGMENT_SHADER, fragment_shader);
-
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
-	glLinkProgram(program);
-	glValidateProgram(program);
-
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-	return program;
-}
 
 
 int main()
@@ -140,10 +46,10 @@ int main()
 	// !-------------------------------
 	// ! ----- SHADERS MANAGEMENT -----
 	// !-------------------------------
-	char** shaders = read_shaders("src/shaders/base_vertex.glsl",
-								  "src/shaders/base_fragment.glsl");
+	char** shaders = j_shader_read("src/shaders/base_vertex.glsl",
+								   "src/shaders/base_fragment.glsl");
 
-	unsigned int shader_program = CreateShader(shaders[0], shaders[1]);
+	unsigned int shader_program = j_shader_create(shaders[0], shaders[1]);
 
 	float positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f, 0.8f, -0.8f };
 	unsigned int indices[] = { 0, 1, 2, 1, 3, 2 };
@@ -157,8 +63,9 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 2, positions,
 				 GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+
 
 	// !-------------------------------
 	// ! ----- INDEX BUFFER OBJECT ----

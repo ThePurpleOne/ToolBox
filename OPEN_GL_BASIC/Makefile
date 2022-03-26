@@ -10,6 +10,7 @@ TEST_EXE   := test
 
 SOURCES += $(SRC)/$(EXECUTABLE).c
 SOURCES += $(SRC)/sdl_abstract.c
+SOURCES += $(SRC)/j_shaders.c
 
 TEST_SOURCES += $(SRC)/$(TEST_EXE).c
 
