@@ -7,22 +7,12 @@
 */
 
 //#include <GL/gl.h>
+#include "../include/sdl_abstract.h"
+
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-
-#define WINDOW_NAME	  "Testing OPENGL"
-#define WINDOW_WIDTH  500
-#define WINDOW_HEIGHT 500
-
-#define FPS		   200
-#define FRAME_TIME (1000 / FPS)
-
-int32_t SDL_GL_SpawnAll(SDL_Window** pp_win_);
-void	SDL_killAll(SDL_Window** pp_win_);
 
 /**
  * @brief Read the shaders from files and return an array of strings
@@ -78,7 +68,6 @@ char** read_shaders(char* fpath_vertex, char* fpath_fragment)
 	return output_array;
 }
 
-
 static int CompileShader(unsigned int type, const char* source)
 {
 	unsigned int id	 = glCreateShader(type);
@@ -132,7 +121,7 @@ int main()
 	uint32_t first_ticks, ms_loop;
 	float	 fps = 0;
 
-	if (SDL_GL_SpawnAll(&window) == 0)
+	if (SDL_SpawnAll(&window) == 0)
 	{
 		printf("SDL STUFF SUCCESSFULLY SPAWNED!\n");
 	}
@@ -147,7 +136,10 @@ int main()
 		exit(1);
 	}
 
-	// ! SHADERS MANAGEMENT
+
+	// !-------------------------------
+	// ! ----- SHADERS MANAGEMENT -----
+	// !-------------------------------
 	char** shaders = read_shaders("src/shaders/base_vertex.glsl",
 								  "src/shaders/base_fragment.glsl");
 
@@ -156,7 +148,9 @@ int main()
 	float positions[] = { -0.8f, 0.8f, 0.8f, 0.8f, -0.8f, -0.8f, 0.8f, -0.8f };
 	unsigned int indices[] = { 0, 1, 2, 1, 3, 2 };
 
-	printf("JUST BEFORE CREATING VBO\n");
+	// !-------------------------------
+	// ! ---- VERTEX BUFFER OBJECT ----
+	// !-------------------------------
 	unsigned int vbo; // VERTEX BUFFER OBJECT
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -166,6 +160,9 @@ int main()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 
+	// !-------------------------------
+	// ! ----- INDEX BUFFER OBJECT ----
+	// !-------------------------------
 	unsigned int ibo; // INDEX BUFFER OBJECT
 	glGenBuffers(1, &ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -197,6 +194,7 @@ int main()
 				}
 			}
 		}
+
 		// !-------------------------------
 		// ! ----------- UPDATE -----------
 		// !-------------------------------
@@ -235,54 +233,5 @@ int main()
 	SDL_GL_DeleteContext(gl_ctx);
 	SDL_killAll(&window);
 
-
 	return 0;
-}
-
-/**
- * @brief Setup the basic SDL stuff
- *
- * @param pp_win_ Pointer to Window Pointer
- * @param pp_ren Pointer to Renderer Pointer
- * @return int32_t
- */
-int32_t SDL_GL_SpawnAll(SDL_Window** pp_win_)
-{
-	// ! INIT SDL
-	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) != 0)
-	{
-		printf("Unable to Initialize SDL: %s", SDL_GetError());
-		SDL_killAll(pp_win_);
-		return EXIT_FAILURE;
-	}
-
-	// ! INIT WINDOW
-	*pp_win_ = SDL_CreateWindow(WINDOW_NAME, SDL_WINDOWPOS_CENTERED,
-								SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH,
-								WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
-	if (*pp_win_ == NULL)
-	{
-		printf("Unable to Initialize the Window: %s", SDL_GetError());
-		SDL_killAll(pp_win_);
-		return EXIT_FAILURE;
-	}
-
-	return 0;
-}
-
-/**
- * @brief Destroy and free the SDL stuff
- *
- * @param pp_win_ Pointer to Window Pointer
- * @param pp_ren Pointer to Renderer Pointer
- */
-void SDL_killAll(SDL_Window** pp_win_)
-{
-	// Free the SDL window
-	if (pp_win_)
-	{
-		SDL_DestroyWindow(*pp_win_);
-		*pp_win_ = NULL;
-	}
-	printf("SDL STUFF DESTROYED AND FREED! \n");
 }

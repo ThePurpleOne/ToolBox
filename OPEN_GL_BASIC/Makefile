@@ -9,6 +9,7 @@ EXECUTABLE   := main
 TEST_EXE   := test
 
 SOURCES += $(SRC)/$(EXECUTABLE).c
+SOURCES += $(SRC)/sdl_abstract.c
 
 TEST_SOURCES += $(SRC)/$(TEST_EXE).c
 
